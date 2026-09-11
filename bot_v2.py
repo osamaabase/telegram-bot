@@ -1159,6 +1159,16 @@ app.add_handler(
     CallbackQueryHandler(button_handler)
 )
 
-print("البوت v2 يعمل...")
+import os
 
-app.run_polling()
+PORT = int(os.environ.get("PORT", 10000))
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+
+print("البوت v2 يعمل بنظام Webhook...")
+
+app.run_webhook(
+    listen="0.0.0.0",
+    port=PORT,
+    webhook_url=WEBHOOK_URL,
+    allowed_updates=Update.ALL_TYPES,
+)
