@@ -787,66 +787,66 @@ async def button_handler(
             else "بدون Username"
         )
 
-       if admin_id is not None:
+              if admin_id is not None:
 
-    notification = (
-        "💰 طلب اشتراك جديد\n\n"
-        f"🆔 الطلب: #{request_id}\n"
-        f"👤 الاسم: {user.full_name}\n"
-        f"📱 Username: {username}\n"
-        f"🆔 Telegram ID: {user.id}\n"
-        f"📦 الباقة: {plan_name}\n\n"
-        "اختر مدة الاشتراك:"
-    )
-
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "1 سنه",
-                callback_data=f"activate_365_{request_id}"
-            ),
-            InlineKeyboardButton(
-                "30 يوم",
-                callback_data=f"activate_30_{request_id}"
+            notification = (
+                "💰 طلب اشتراك جديد\n\n"
+                f"🆔 الطلب: #{request_id}\n"
+                f"👤 الاسم: {user.full_name}\n"
+                f"📱 Username: {username}\n"
+                f"🆔 Telegram ID: {user.id}\n"
+                f"📦 الباقة: {plan_name}\n\n"
+                "اختر مدة الاشتراك:"
             )
-        ],
-        [
-            InlineKeyboardButton(
-                "90 يوم",
-                callback_data=f"activate_90_{request_id}"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "❌ رفض",
-                callback_data=f"reject_{request_id}"
-            )
-        ]
-    ]
 
-    await context.bot.send_message(
-        chat_id=admin_id,
-        text=notification,
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "1 سنه",
+                        callback_data=f"activate_365_{request_id}"
+                    ),
+                    InlineKeyboardButton(
+                        "30 يوم",
+                        callback_data=f"activate_30_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "90 يوم",
+                        callback_data=f"activate_90_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "❌ رفض",
+                        callback_data=f"reject_{request_id}"
+                    )
+                ]
+            ]
 
-await query.message.reply_text(
-    f"📦 اخترت:\n\n"
-    f"{plan_name}\n\n"
-    "✅ تم استلام طلبك بنجاح.\n\n"
-    "👨‍💻 ستتم مراجعة الطلب من الإدارة "
-    "والتواصل معك لإكمال الإجراءات.",
-    reply_markup=InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(
-                "📞 التواصل مع الدعم",
-                url="https://t.me/sfort4k"
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=notification,
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
-        ]
-    ])
-)
 
-return
+        await query.message.reply_text(
+            f"📦 اخترت:\n\n"
+            f"{plan_name}\n\n"
+            "✅ تم استلام طلبك بنجاح.\n\n"
+            "👨‍💻 ستتم مراجعة الطلب من الإدارة "
+            "والتواصل معك لإكمال الإجراءات.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "📞 التواصل مع الدعم",
+                        url="https://t.me/sfort4k"
+                    )
+                ]
+            ])
+        )
+
+        return
 
     # =====================================================
     # حالة اشتراك المستخدم
