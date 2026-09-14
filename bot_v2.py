@@ -715,13 +715,13 @@ async def button_handler(
         if admin_id is not None:
 
             notification = (
-                "🔔 طلب تجربة مجانية جديد\n\n"
+                "💰 طلب اشتراك جديد\n\n"
                 f"🆔 الطلب: #{request_id}\n"
                 f"👤 الاسم: {user.full_name}\n"
                 f"📱 Username: {username}\n"
                 f"🆔 Telegram ID: {user.id}\n"
-                f"📺 الجهاز: {device_name}\n\n"
-                "اختر الإجراء:"
+                f"📦 الباقة: {plan_name}\n\n"
+                "اختر مدة الاشتراك:"
             )
 
             keyboard = [
