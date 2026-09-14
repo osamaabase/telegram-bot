@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 # =========================================================
 
 TOKEN = os.environ.get("BOT_TOKEN")
+
 # Telegram ID الخاص بالـAdmin
 ADMIN_FILE = "admin_id.txt"
 
@@ -31,7 +32,6 @@ def get_db():
 
 
 def init_database():
-
     conn = get_db()
     cursor = conn.cursor()
 
@@ -79,28 +79,37 @@ def init_database():
 # =========================================================
 
 def get_admin_id():
+    # أولاً نحاول من Environment Variable
+    env_admin_id = os.environ.get("ADMIN_ID")
 
+    if env_admin_id:
+        try:
+            return int(env_admin_id)
+        except ValueError:
+            pass
+
+    # إذا لم يوجد، نستخدم الملف
     if os.path.exists(ADMIN_FILE):
+        try:
+            with open(ADMIN_FILE, "r") as f:
+                value = f.read().strip()
 
-        with open(ADMIN_FILE, "r") as f:
-            value = f.read().strip()
+            if value:
+                return int(value)
 
-        if value:
-            return int(value)
+        except (ValueError, OSError):
+            pass
 
     return None
 
 
 def save_admin_id(user_id):
-
     with open(ADMIN_FILE, "w") as f:
         f.write(str(user_id))
 
 
 def is_admin(user_id):
-
     admin_id = get_admin_id()
-
     return admin_id is not None and user_id == admin_id
 
 
@@ -109,7 +118,6 @@ def is_admin(user_id):
 # =========================================================
 
 def save_user(user):
-
     conn = get_db()
     cursor = conn.cursor()
 
@@ -144,7 +152,6 @@ def create_request(
     plan="",
     device=""
 ):
-
     conn = get_db()
     cursor = conn.cursor()
 
@@ -174,7 +181,6 @@ def create_request(
 # =========================================================
 
 def update_request_status(request_id, status):
-
     conn = get_db()
     cursor = conn.cursor()
 
@@ -200,14 +206,13 @@ def activate_subscription(
     plan,
     days
 ):
-
     start_date = datetime.now()
     end_date = start_date + timedelta(days=days)
 
     conn = get_db()
     cursor = conn.cursor()
 
-    # إلغاء الاشتراك القديم إن وجد
+    # إلغاء الاشتراك القديم
     cursor.execute("""
         UPDATE subscriptions
         SET status = 'expired'
@@ -241,7 +246,6 @@ def activate_subscription(
 # =========================================================
 
 def update_expired_subscriptions():
-
     conn = get_db()
     cursor = conn.cursor()
 
@@ -268,13 +272,15 @@ async def start(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     user = update.effective_user
 
     save_user(user)
 
     message = (
-      "📺 أقوى سيرفر بث رياضي للعرب في أوروبا!\n\n"         "شاهد مباريات فريقك المفضل بجودة عالية بدون أي تقطيع أو إعلانات مزعجة.\n\n"         "للتفاصيل والاشتراك اضغط هنا ⬇️"  
+        "📺 أقوى سيرفر بث رياضي للعرب في أوروبا!\n\n"
+        "شاهد مباريات فريقك المفضل بجودة عالية "
+        "بدون أي تقطيع أو إعلانات مزعجة.\n\n"
+        "للتفاصيل والاشتراك اضغط هنا ⬇️"
     )
 
     keyboard = [
@@ -312,7 +318,6 @@ async def set_admin(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     user_id = update.effective_user.id
 
     current_admin = get_admin_id()
@@ -320,13 +325,10 @@ async def set_admin(
     if current_admin is not None:
 
         if user_id == current_admin:
-
             await update.message.reply_text(
                 "✅ أنت الـAdmin بالفعل."
             )
-
         else:
-
             await update.message.reply_text(
                 "❌ هذا الأمر غير متاح."
             )
@@ -349,7 +351,6 @@ async def myid(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     await update.message.reply_text(
         f"🆔 Telegram ID الخاص بك:\n\n"
         f"{update.effective_user.id}"
@@ -364,15 +365,12 @@ async def admin_panel(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-
         await update.message.reply_text(
             "❌ هذا الأمر خاص بالـAdmin."
         )
-
         return
 
     update_expired_subscriptions()
@@ -427,15 +425,12 @@ async def requests_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-
         await update.message.reply_text(
             "❌ هذا الأمر خاص بالـAdmin."
         )
-
         return
 
     conn = get_db()
@@ -460,11 +455,9 @@ async def requests_command(
     conn.close()
 
     if not requests:
-
         await update.message.reply_text(
             "📭 لا توجد طلبات معلقة حالياً."
         )
-
         return
 
     for request in requests:
@@ -478,8 +471,49 @@ async def requests_command(
 
         if request_type == "trial":
             title = "🎁 طلب تجربة مجانية"
+
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "✅ تفعيل 24 ساعة",
+                        callback_data=f"approve_trial_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "❌ رفض",
+                        callback_data=f"reject_{request_id}"
+                    )
+                ]
+            ]
+
         else:
             title = "💰 طلب اشتراك"
+
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "365 يوم",
+                        callback_data=f"activate_365_{request_id}"
+                    ),
+                    InlineKeyboardButton(
+                        "30 يوم",
+                        callback_data=f"activate_30_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "90 يوم",
+                        callback_data=f"activate_90_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "❌ رفض",
+                        callback_data=f"reject_{request_id}"
+                    )
+                ]
+            ]
 
         text = (
             f"{title}\n\n"
@@ -489,19 +523,6 @@ async def requests_command(
             f"📺 الجهاز: {device if device else '—'}\n"
             f"🕐 التاريخ: {created_at}"
         )
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "✅ تفعيل",
-                    callback_data=f"approve_{request_id}"
-                ),
-                InlineKeyboardButton(
-                    "❌ رفض",
-                    callback_data=f"reject_{request_id}"
-                )
-            ]
-        ]
 
         await update.message.reply_text(
             text,
@@ -517,15 +538,12 @@ async def subscriptions_command(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-
         await update.message.reply_text(
             "❌ هذا الأمر خاص بالـAdmin."
         )
-
         return
 
     update_expired_subscriptions()
@@ -550,11 +568,9 @@ async def subscriptions_command(
     conn.close()
 
     if not subscriptions:
-
         await update.message.reply_text(
             "📭 لا توجد اشتراكات حتى الآن."
         )
-
         return
 
     message = "📋 الاشتراكات:\n\n"
@@ -592,7 +608,6 @@ async def button_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE
 ):
-
     query = update.callback_query
 
     await query.answer()
@@ -672,7 +687,7 @@ async def button_handler(
             "✨ VIP — 60€\n"
             "⚜️ ذهبي — 30€\n"
             "💎 ماسي — 45€\n\n"
-            "💳 الدفع عن طريق paypal او stripe .\n\n"
+            "💳 الدفع عن طريق paypal او stripe.\n\n"
             "📞 الدعم: @sfort4k",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -715,13 +730,13 @@ async def button_handler(
         if admin_id is not None:
 
             notification = (
-                "💰 طلب اشتراك جديد\n\n"
+                "🔔 طلب تجربة مجانية جديد\n\n"
                 f"🆔 الطلب: #{request_id}\n"
                 f"👤 الاسم: {user.full_name}\n"
                 f"📱 Username: {username}\n"
                 f"🆔 Telegram ID: {user.id}\n"
-                f"📦 الباقة: {plan_name}\n\n"
-                "اختر مدة الاشتراك:"
+                f"📺 الجهاز: {device_name}\n\n"
+                "اختر الإجراء:"
             )
 
             keyboard = [
@@ -779,15 +794,15 @@ async def button_handler(
             plan=plan_name
         )
 
-admin_id = get_admin_id()
+        admin_id = get_admin_id()
 
-username = (
-f"@{user.username}"
- if user.username
-else "بدون Username"
+        username = (
+            f"@{user.username}"
+            if user.username
+            else "بدون Username"
         )
 
-if admin_id is not None:
+        if admin_id is not None:
 
             notification = (
                 "💰 طلب اشتراك جديد\n\n"
@@ -802,7 +817,7 @@ if admin_id is not None:
             keyboard = [
                 [
                     InlineKeyboardButton(
-                        "1 سنه",
+                        "1 سنة",
                         callback_data=f"activate_365_{request_id}"
                     ),
                     InlineKeyboardButton(
@@ -830,7 +845,7 @@ if admin_id is not None:
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-await query.message.reply_text(
+        await query.message.reply_text(
             f"📦 اخترت:\n\n"
             f"{plan_name}\n\n"
             "✅ تم استلام طلبك بنجاح.\n\n"
@@ -907,7 +922,10 @@ await query.message.reply_text(
     if query.data.startswith("approve_trial_"):
 
         if not is_admin(user.id):
-
+            await query.answer(
+                "❌ غير مسموح.",
+                show_alert=True
+            )
             return
 
         request_id = int(
@@ -954,10 +972,10 @@ await query.message.reply_text(
         )
 
         await query.edit_message_text(
-            f"✅ تم تفعيل التجربة.\n\n"
+            "✅ تم تفعيل التجربة.\n\n"
             f"🆔 الطلب: #{request_id}\n"
             f"👤 العميل: {customer_id}\n"
-            f"⏰ المدة: 24 ساعة"
+            "⏰ المدة: 24 ساعة"
         )
 
         try:
@@ -977,13 +995,16 @@ await query.message.reply_text(
         return
 
     # =====================================================
-    # تفعيل اشتراك 365/ 30 / 90 يوم
+    # تفعيل اشتراك 365 / 30 / 90 يوم
     # =====================================================
 
     if query.data.startswith("activate_"):
 
         if not is_admin(user.id):
-
+            await query.answer(
+                "❌ غير مسموح.",
+                show_alert=True
+            )
             return
 
         parts = query.data.split("_")
@@ -1064,7 +1085,10 @@ await query.message.reply_text(
     if query.data.startswith("reject_"):
 
         if not is_admin(user.id):
-
+            await query.answer(
+                "❌ غير مسموح.",
+                show_alert=True
+            )
             return
 
         request_id = int(
@@ -1105,7 +1129,7 @@ await query.message.reply_text(
         )
 
         await query.edit_message_text(
-            f"❌ تم رفض الطلب.\n\n"
+            "❌ تم رفض الطلب.\n\n"
             f"🆔 الطلب: #{request_id}"
         )
 
@@ -1131,7 +1155,17 @@ await query.message.reply_text(
 
 init_database()
 
+if not TOKEN:
+    raise RuntimeError(
+        "❌ BOT_TOKEN غير موجود في Environment Variables."
+    )
+
 app = Application.builder().token(TOKEN).build()
+
+
+# =========================================================
+# الأوامر
+# =========================================================
 
 app.add_handler(
     CommandHandler("start", start)
@@ -1157,11 +1191,19 @@ app.add_handler(
     CommandHandler("subscriptions", subscriptions_command)
 )
 
+
+# =========================================================
+# Callback Buttons
+# =========================================================
+
 app.add_handler(
     CallbackQueryHandler(button_handler)
 )
 
-import os
+
+# =========================================================
+# Webhook / Render
+# =========================================================
 
 PORT = int(os.environ.get("PORT", 10000))
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
