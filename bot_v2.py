@@ -3,7 +3,9 @@ from telegram.ext import (
     Application,
     CommandHandler,
     CallbackQueryHandler,
+    MessageHandler,
     ContextTypes,
+    filters,
 )
 import sqlite3
 import os
@@ -277,6 +279,10 @@ async def start(
     user = update.effective_user
 
     save_user(user)
+
+    # تنظيف أي اختيار قديم
+    context.user_data.pop("trial_device", None)
+    context.user_data.pop("selected_plan", None)
 
     message = (
         "📺 أقوى سيرفر بث رياضي للعرب في أوروبا!\n\n"
@@ -605,6 +611,103 @@ async def subscriptions_command(
 
 
 # =========================================================
+# استقبال صورة MAC Address + Device Code
+# =========================================================
+
+async def photo_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+    user = update.effective_user
+
+    device_name = context.user_data.get("trial_device")
+
+    # إذا لم يكن المستخدم داخل خطوات التجربة
+    if not device_name:
+        await update.message.reply_text(
+            "ℹ️ إذا كنت تريد تجربة مجانية، "
+            "اضغط /start ثم اختر تجربة مجانية."
+        )
+        return
+
+    save_user(user)
+
+    # أخذ أعلى جودة للصورة
+    photo = update.message.photo[-1]
+
+    request_id = create_request(
+        telegram_id=user.id,
+        request_type="trial",
+        device=device_name
+    )
+
+    admin_id = get_admin_id()
+
+    username = (
+        f"@{user.username}"
+        if user.username
+        else "بدون Username"
+    )
+
+    if admin_id is not None:
+
+        notification = (
+            "🔔 طلب تجربة مجانية جديد\n\n"
+            f"🆔 الطلب: #{request_id}\n"
+            f"👤 الاسم: {user.full_name}\n"
+            f"📱 Username: {username}\n"
+            f"🆔 Telegram ID: {user.id}\n"
+            f"📺 الجهاز: {device_name}\n\n"
+            "📸 تم استلام صورة بيانات الجهاز.\n"
+            "راجع MAC Address و Device Code في الصورة.\n\n"
+            "اختر الإجراء:"
+        )
+
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "✅ تفعيل 24 ساعة",
+                    callback_data=f"approve_trial_{request_id}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "❌ رفض",
+                    callback_data=f"reject_{request_id}"
+                )
+            ]
+        ]
+
+        await context.bot.send_photo(
+            chat_id=admin_id,
+            photo=photo.file_id,
+            caption=notification,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    else:
+
+        # في حال لم يتم ضبط ADMIN_ID
+        await update.message.reply_text(
+            "⚠️ تم استلام الصورة، لكن لم يتم العثور على حساب الإدارة."
+        )
+
+        context.user_data.pop("trial_device", None)
+        return
+
+    await update.message.reply_text(
+        "✅ تم استلام الصورة بنجاح.\n\n"
+        f"📺 الجهاز: {device_name}\n"
+        "⏰ التجربة: 24 ساعة\n\n"
+        "👨‍💻 سيتم مراجعة بيانات الجهاز من الإدارة "
+        "والتواصل معك بعد إكمال المراجعة."
+    )
+
+    # حذف الجهاز المؤقت
+    context.user_data.pop("trial_device", None)
+
+
+# =========================================================
 # أزرار المستخدم + الـAdmin
 # =========================================================
 
@@ -623,6 +726,9 @@ async def button_handler(
     # =====================================================
 
     if query.data == "trial":
+
+        # تنظيف أي اختيار سابق
+        context.user_data.pop("trial_device", None)
 
         keyboard = [
             [
@@ -726,146 +832,23 @@ async def button_handler(
             "غير معروف"
         )
 
-        save_user(user)
-
-        request_id = create_request(
-            telegram_id=user.id,
-            request_type="trial",
-            device=device_name
-        )
-
-        admin_id = get_admin_id()
-
-        username = (
-            f"@{user.username}"
-            if user.username
-            else "بدون Username"
-        )
-
-        if admin_id is not None:
-
-            notification = (
-                "🔔 طلب تجربة مجانية جديد\n\n"
-                f"🆔 الطلب: #{request_id}\n"
-                f"👤 الاسم: {user.full_name}\n"
-                f"📱 Username: {username}\n"
-                f"🆔 Telegram ID: {user.id}\n"
-                f"📺 الجهاز: {device_name}\n\n"
-                "اختر الإجراء:"
-            )
-
-            keyboard = [
-                [
-                    InlineKeyboardButton(
-                        "✅ تفعيل 24 ساعة",
-                        callback_data=f"approve_trial_{request_id}"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "❌ رفض",
-                        callback_data=f"reject_{request_id}"
-                    )
-                ]
-            ]
-
-            await context.bot.send_message(
-                chat_id=admin_id,
-                text=notification,
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
+        # تخزين الجهاز مؤقتاً
+        context.user_data["trial_device"] = device_name
 
         await query.message.reply_text(
-            "✅ تم تسجيل طلب التجربة بنجاح.\n\n"
-            f"📺 الجهاز: {device_name}\n"
-            "⏰ المدة: 24 ساعة\n\n"
-            "👨‍💻 سيتم مراجعة طلبك من الإدارة."
+            f"✅ تم اختيار الجهاز:\n"
+            f"{device_name}\n\n"
+            "🔐 لإكمال طلب التجربة المجانية، يرجى إرسال "
+            "صورة واضحة للشاشة التي يظهر فيها:\n\n"
+            "📌 MAC Address\n"
+            "📌 Device Code\n\n"
+            "📸 أرسل الصورة هنا مباشرة.\n\n"
+            "⚠️ تأكد أن المعلومات واضحة حتى يتمكن الدعم "
+            "من معالجة طلبك."
         )
 
         return
 
-        # =====================================================
-    # استقبال صورة MAC Address + Device Code
-    # =====================================================
-
-    if update.message and update.message.photo:
-
-        device_name = context.user_data.get("trial_device")
-
-        if not device_name:
-            await update.message.reply_text(
-                "❌ لم يتم اختيار نوع الجهاز.\n\n"
-                "يرجى الضغط على تجربة مجانية واختيار جهازك أولاً."
-            )
-            return
-
-        save_user(user)
-
-        photo = update.message.photo[-1]
-
-        request_id = create_request(
-            telegram_id=user.id,
-            request_type="trial",
-            device=device_name
-        )
-
-        admin_id = get_admin_id()
-
-        username = (
-            f"@{user.username}"
-            if user.username
-            else "بدون Username"
-        )
-
-        if admin_id is not None:
-
-            notification = (
-                "🔔 طلب تجربة مجانية جديد\n\n"
-                f"🆔 الطلب: #{request_id}\n"
-                f"👤 الاسم: {user.full_name}\n"
-                f"📱 Username: {username}\n"
-                f"🆔 Telegram ID: {user.id}\n"
-                f"📺 الجهاز: {device_name}\n\n"
-                "📸 المستخدم أرسل صورة تحتوي على بيانات الجهاز.\n"
-                "راجع الصورة وتأكد من MAC Address وDevice Code.\n\n"
-                "اختر الإجراء:"
-            )
-
-            keyboard = [
-                [
-                    InlineKeyboardButton(
-                        "✅ تفعيل 24 ساعة",
-                        callback_data=f"approve_trial_{request_id}"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "❌ رفض",
-                        callback_data=f"reject_{request_id}"
-                    )
-                ]
-            ]
-
-            await context.bot.send_photo(
-                chat_id=admin_id,
-                photo=photo.file_id,
-                caption=notification,
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
-
-        await query.message.reply_text(
-            "✅ تم استلام الصورة بنجاح.\n\n"
-            f"📺 الجهاز: {device_name}\n"
-            "⏰ التجربة: 24 ساعة\n\n"
-            "👨‍💻 سيتم مراجعة بيانات الجهاز من الإدارة "
-            "والتواصل معك بعد إكمال المراجعة."
-        )
-
-        # حذف بيانات الجهاز المؤقتة
-        context.user_data.pop("trial_device", None)
-
-        return
-        
     # =====================================================
     # اختيار الباقة
     # =====================================================
@@ -883,7 +866,7 @@ async def button_handler(
             "باقة غير معروفة"
         )
 
-        # نخزن الباقة مؤقتاً للمستخدم
+        # تخزين الباقة مؤقتاً
         context.user_data["selected_plan"] = plan_name
 
         keyboard = [
@@ -1221,12 +1204,18 @@ async def button_handler(
             "approved"
         )
 
+        duration_label = {
+            30: "30 يوم",
+            90: "90 يوم",
+            365: "سنة واحدة"
+        }.get(days, f"{days} يوم")
+
         await query.edit_message_text(
             "✅ تم تفعيل الاشتراك بنجاح.\n\n"
             f"🆔 الطلب: #{request_id}\n"
             f"👤 العميل: {customer_id}\n"
             f"📦 الباقة: {plan}\n"
-            f"⏰ المدة: {days} يوم\n"
+            f"⏰ المدة: {duration_label}\n"
             f"▶️ البداية: {start_date.strftime('%Y-%m-%d %H:%M')}\n"
             f"⏹️ النهاية: {end_date.strftime('%Y-%m-%d %H:%M')}"
         )
@@ -1238,7 +1227,7 @@ async def button_handler(
                 text=(
                     "🎉 تم تفعيل اشتراكك بنجاح!\n\n"
                     f"📦 الباقة: {plan}\n"
-                    f"⏰ المدة: {days} يوم\n"
+                    f"⏰ المدة: {duration_label}\n"
                     f"▶️ البداية: {start_date.strftime('%Y-%m-%d %H:%M')}\n"
                     f"⏹️ الانتهاء: {end_date.strftime('%Y-%m-%d %H:%M')}\n\n"
                     "✅ حالة الاشتراك: فعال"
@@ -1361,6 +1350,18 @@ app.add_handler(
 
 app.add_handler(
     CommandHandler("subscriptions", subscriptions_command)
+)
+
+
+# =========================================================
+# استقبال الصور
+# =========================================================
+
+app.add_handler(
+    MessageHandler(
+        filters.PHOTO,
+        photo_handler
+    )
 )
 
 
