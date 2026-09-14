@@ -1230,4 +1230,3 @@ app.run_webhook(
     webhook_url=WEBHOOK_URL,
     allowed_updates=Update.ALL_TYPES,
 )
-```
