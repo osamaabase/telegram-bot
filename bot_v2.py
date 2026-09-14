@@ -784,6 +784,88 @@ async def button_handler(
 
         return
 
+        # =====================================================
+    # استقبال صورة MAC Address + Device Code
+    # =====================================================
+
+    if update.message and update.message.photo:
+
+        device_name = context.user_data.get("trial_device")
+
+        if not device_name:
+            await update.message.reply_text(
+                "❌ لم يتم اختيار نوع الجهاز.\n\n"
+                "يرجى الضغط على تجربة مجانية واختيار جهازك أولاً."
+            )
+            return
+
+        save_user(user)
+
+        photo = update.message.photo[-1]
+
+        request_id = create_request(
+            telegram_id=user.id,
+            request_type="trial",
+            device=device_name
+        )
+
+        admin_id = get_admin_id()
+
+        username = (
+            f"@{user.username}"
+            if user.username
+            else "بدون Username"
+        )
+
+        if admin_id is not None:
+
+            notification = (
+                "🔔 طلب تجربة مجانية جديد\n\n"
+                f"🆔 الطلب: #{request_id}\n"
+                f"👤 الاسم: {user.full_name}\n"
+                f"📱 Username: {username}\n"
+                f"🆔 Telegram ID: {user.id}\n"
+                f"📺 الجهاز: {device_name}\n\n"
+                "📸 المستخدم أرسل صورة تحتوي على بيانات الجهاز.\n"
+                "راجع الصورة وتأكد من MAC Address وDevice Code.\n\n"
+                "اختر الإجراء:"
+            )
+
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "✅ تفعيل 24 ساعة",
+                        callback_data=f"approve_trial_{request_id}"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "❌ رفض",
+                        callback_data=f"reject_{request_id}"
+                    )
+                ]
+            ]
+
+            await context.bot.send_photo(
+                chat_id=admin_id,
+                photo=photo.file_id,
+                caption=notification,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
+        await query.message.reply_text(
+            "✅ تم استلام الصورة بنجاح.\n\n"
+            f"📺 الجهاز: {device_name}\n"
+            "⏰ التجربة: 24 ساعة\n\n"
+            "👨‍💻 سيتم مراجعة بيانات الجهاز من الإدارة "
+            "والتواصل معك بعد إكمال المراجعة."
+        )
+
+        # حذف بيانات الجهاز المؤقتة
+        context.user_data.pop("trial_device", None)
+
+        return
+        
     # =====================================================
     # اختيار الباقة
     # =====================================================
