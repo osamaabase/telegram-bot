@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 # الإعدادات
 # =========================================================
 
-TOKEN = os.environ.get("8569150802:AAF0J3pHUVOFqUtWopdmT1gh95tozAHo9GM")
+TOKEN = os.environ.get("BOT_TOKEN")
 # Telegram ID الخاص بالـAdmin
 ADMIN_FILE = "admin_id.txt"
 
