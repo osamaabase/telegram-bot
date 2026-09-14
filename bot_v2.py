@@ -779,15 +779,15 @@ async def button_handler(
             plan=plan_name
         )
 
-        admin_id = get_admin_id()
+admin_id = get_admin_id()
 
-        username = (
-            f"@{user.username}"
-            if user.username
-            else "بدون Username"
+username = (
+f"@{user.username}"
+ if user.username
+else "بدون Username"
         )
 
-              if admin_id is not None:
+if admin_id is not None:
 
             notification = (
                 "💰 طلب اشتراك جديد\n\n"
