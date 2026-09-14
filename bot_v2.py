@@ -648,52 +648,53 @@ async def button_handler(
         )
 
         return
+# =====================================================
+# الباقات
+# =====================================================
 
-    # =====================================================
-    # الباقات
-    # =====================================================
+if query.data == "plans":
 
-    if query.data == "plans":
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "✨ VIP — 60€",
+                callback_data="plan_vip"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "⚜️ ذهبي — 30€",
+                callback_data="plan_gold"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "💎 ماسي — 45€",
+                callback_data="plan_diamond"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "📞 التواصل مع الدعم",
+                url="https://t.me/sfort4k"
+            )
+        ],
+    ]
 
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "✨ VIP — 60€",
-                    callback_data="plan_vip"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "⚜️ ذهبي — 30€",
-                    callback_data="plan_gold"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "💎 ماسي — 45€",
-                    callback_data="plan_diamond"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "📞 التواصل مع الدعم",
-                    url="https://t.me/sfort4k"
-                )
-            ],
-        ]
-
-        await query.message.reply_text(
+await query.message.reply_photo(
+        photo="plans.jpg",
+        caption=(
             "💰 الباقات والأسعار\n\n"
             "✨ VIP — 60€\n"
             "⚜️ ذهبي — 30€\n"
             "💎 ماسي — 45€\n\n"
-            "💳 الدفع عن طريق paypal او stripe.\n\n"
-            "📞 الدعم: @sfort4k",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+            "💳 الدفع عن طريق PayPal أو Stripe.\n\n"
+            "📞 الدعم: @sfort4k"
+        ),
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-        return
-
+    return
     # =====================================================
     # اختيار الجهاز
     # =====================================================
