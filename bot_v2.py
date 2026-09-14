@@ -830,20 +830,23 @@ async def button_handler(
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-        await query.message.reply_text(
-            f"📦 اخترت:\n\n"
-            f"{plan_name}\n\n"
-            "✅ تم استلام طلبك بنجاح.\n\n"
-            "👨‍💻 ستتم مراجعة الطلب من الإدارة "
-            "والتواصل معك لإكمال الإجراءات."
-        ) [
-                InlineKeyboardButton(
-                    "📞 التواصل مع الدعم",
-                    url="https://t.me/sfort4k"
-                )
-            ],
+       await query.message.reply_text(
+    f"📦 اخترت:\n\n"
+    f"{plan_name}\n\n"
+    "✅ تم استلام طلبك بنجاح.\n\n"
+    "👨‍💻 ستتم مراجعة الطلب من الإدارة "
+    "والتواصل معك لإكمال الإجراءات.",
+    reply_markup=InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(
+                "📞 التواصل مع الدعم",
+                url="https://t.me/sfort4k"
+            )
+        ]
+    ])
+)
 
-        return
+return
 
     # =====================================================
     # حالة اشتراك المستخدم
