@@ -830,7 +830,7 @@ if admin_id is not None:
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-        await query.message.reply_text(
+await query.message.reply_text(
             f"📦 اخترت:\n\n"
             f"{plan_name}\n\n"
             "✅ تم استلام طلبك بنجاح.\n\n"
